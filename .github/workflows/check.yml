@@ -5,25 +5,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-24.04
-          - ubuntu-22.04
-          - ubuntu-24.04-arm
-          - namespace-profile-linux-amd64
-          - blacksmith-8vcpu-ubuntu-2404
-          - depot-ubuntu-24.04-8
+        os: [ubuntu-24.04, namespace-profile-linux-amd64]
     runs-on: ${{ matrix.os }}
     steps:
-      - run: |
-          uname -r; cat /proc/1/comm
-          awk '$2=="/dev"' /proc/mounts
-          ls -la /dev/fd /dev/stdin /dev/stdout /dev/stderr || true
-          diff <(echo a) <(echo a) && echo "process substitution OK" || echo "process substitution FAILED"
-          echo hi | cat /dev/stdin || echo "/dev/stdin FAILED"
-          sudo mkdir -p /mnt/dt
-          if sudo mount -t devtmpfs udev /mnt/dt; then
-            ls -la /mnt/dt/fd /mnt/dt/stdin /mnt/dt/stdout /mnt/dt/stderr || true
-            sudo umount /mnt/dt
-          else
-            echo "devtmpfs mount FAILED"
-          fi
+      - name: boot chain
+        run: |
+          cat /proc/cmdline
+          sudo dmesg | grep -E 'devtmpfs|Run .* as init|initramfs|initrd' || true
+          ls -la /nsc/internal 2>&1 | head -5 || true
+      - name: arch-chroot
+        run: |
+          docker run --rm --privileged archlinux:latest bash -c '
+            pacman -Sy --noconfirm --needed arch-install-scripts >/dev/null 2>&1
+            mkdir /r && mount --bind / /r
+            arch-chroot /r bash -c "ls -la /dev/fd /dev/stdin 2>&1; diff <(echo a) <(echo a) && echo arch-chroot process substitution OK || echo arch-chroot process substitution FAILED"
+          '
