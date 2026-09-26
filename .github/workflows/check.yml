@@ -18,5 +18,5 @@ jobs:
           docker run --rm --privileged archlinux:latest bash -c '
             pacman -Sy --noconfirm --needed arch-install-scripts >/dev/null 2>&1
             mkdir /r && mount --bind / /r
-            arch-chroot /r bash -c "ls -la /dev/fd /dev/stdin 2>&1; diff <(echo a) <(echo a) && echo arch-chroot process substitution OK || echo arch-chroot process substitution FAILED"
+            arch-chroot /r bash -c "ls -la /dev/fd /dev/stdin 2>&1; cat <(echo arch-chroot process substitution OK) || echo arch-chroot process substitution FAILED"
           '
