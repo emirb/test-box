@@ -5,16 +5,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm]
+        os:
+          - ubuntu-24.04
+          - ubuntu-22.04
+          - ubuntu-24.04-arm
+          - namespace-profile-linux-amd64
+          - blacksmith-8vcpu-ubuntu-2404
+          - depot-ubuntu-24.04-8
     runs-on: ${{ matrix.os }}
     steps:
       - run: |
           uname -r; cat /proc/1/comm
           awk '$2=="/dev"' /proc/mounts
           ls -la /dev/fd /dev/stdin /dev/stdout /dev/stderr || true
-          diff <(echo a) <(echo a) && echo "process substitution OK"
-          echo hi | cat /dev/stdin
+          diff <(echo a) <(echo a) && echo "process substitution OK" || echo "process substitution FAILED"
+          echo hi | cat /dev/stdin || echo "/dev/stdin FAILED"
           sudo mkdir -p /mnt/dt
-          sudo mount -t devtmpfs udev /mnt/dt
-          ls -la /mnt/dt/fd /mnt/dt/stdin /mnt/dt/stdout /mnt/dt/stderr || true
-          sudo umount /mnt/dt
+          if sudo mount -t devtmpfs udev /mnt/dt; then
+            ls -la /mnt/dt/fd /mnt/dt/stdin /mnt/dt/stdout /mnt/dt/stderr || true
+            sudo umount /mnt/dt
+          else
+            echo "devtmpfs mount FAILED"
+          fi
